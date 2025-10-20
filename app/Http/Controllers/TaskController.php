@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Models\Tasks;
+use App\Http\Resources\TaskResource;
+use App\Models\Task;
 use Illuminate\Http\Response;
+use App\Http\Requests\StoreTaskRequest;
+use App\Http\Requests\UpdateTaskRequest;
 
 class TaskController extends Controller
 {
@@ -14,72 +17,42 @@ class TaskController extends Controller
      */
     public function index()
     {
-        return response()->json(Tasks::all());
+        return TaskResource::collection(Task::all());
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreTaskRequest $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'status' => 'nullable|in:pending,in_progress,completed'
-        ]);
-
-        $task = Tasks::create($validated);
+        $task = Task::create($request->validated());
         
-        return response()->json($task, Response::HTTP_CREATED);
+        return new TaskResource($task, 201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
-    {
-        $task = Tasks::find($id);
-        
-        if (!$task) {
-            return response()->json(['error' => 'Task not found'], Response::HTTP_NOT_FOUND);
-        }
-        
-        return response()->json($task);
+    public function show(Task $task)
+    {        
+        return new TaskResource($task);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateTaskRequest $request, Task $task)
     {
-        $task = Tasks::find($id);
+        $task->update($request->validated());
         
-        if (!$task) {
-            return response()->json(['error' => 'Task not found'], Response::HTTP_NOT_FOUND);
-        }
-
-        $validated = $request->validate([
-            'title' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
-            'status' => 'sometimes|in:pending,in_progress,completed'
-        ]);
-
-        $task->update($validated);
-        
-        return response()->json($task);
+        return new TaskResource($task);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Task $task)
     {
-        $task = Tasks::find($id);
-        
-        if (!$task) {
-            return response()->json(['error' => 'Task not found'], Response::HTTP_NOT_FOUND);
-        }
-
         $task->delete();
         
         return response()->json(null, Response::HTTP_NO_CONTENT);
